@@ -17,33 +17,42 @@ fn load_memory(input_file: &str) -> Result<Memory, String> {
     data.map(|contents: Vec<usize>| Box::new(contents))
 }
 
-fn preprocess_memory(memory: &mut Memory) {
-    memory[1] = 12;
-    memory[2] = 2
-}
-
-fn main() -> Result<(), String> {
-    //let mut memory: Memory = Box::new(vec![1,9,10,3,2,3,11,0,99,30,40,50]);
-    let mut memory: Memory = load_memory("input01.txt")?;
-
-    preprocess_memory(&mut memory);
-
-    let instructions = InstructionSet::new(vec![
-        (1, Box::new(Add {})),
-        (2, Box::new(Mul {})),
-        (99, Box::new(Terminate {})),
-    ]);
-
+fn run(instructions: &InstructionSet, memory: &mut Memory) {
     let mut pc = 0;
     while pc != std::usize::MAX {
         let opcode = memory[pc];
         pc += 1;
         pc = instructions.instructions
                 .get(&opcode)
-                .map(|inst| inst.execute(&mut memory, pc))
+                .map(|inst| inst.execute(memory, pc))
                 .expect(&format!("Unrecognized opcode {}", opcode))
     }
-    
-    println!("Resulting memory:\n{:#?}", memory);
-    Ok(())
+}
+
+fn advent_01(instructions: InstructionSet) -> Result<(usize, usize), String> {
+    let original_memory: Memory = load_memory("input01.txt")?;
+    for in1 in 0..99 {
+        for in2 in 0..99 {
+            let mut memory = original_memory.clone();
+            memory[1] = in1;
+            memory[2] = in2;
+            run(&instructions, &mut memory);
+            if memory[0] == 19690720 {
+                return Ok((in1, in2));
+            }
+        }
+    }
+    Err("Couldn't find the right operands!".to_string())
+}
+
+fn main() -> Result<(), String> {
+    let instructions = InstructionSet::new(vec![
+        (1, Box::new(Add {})),
+        (2, Box::new(Mul {})),
+        (99, Box::new(Terminate {})),
+    ]);
+
+    let res = advent_01(instructions);
+    println!("Result is {:?}", res);
+    res.map(|_| ())
 }
